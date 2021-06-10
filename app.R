@@ -1,7 +1,10 @@
 library(shiny)
 library(shinyWidgets)
 library(tidyverse)
+library(DT)
+library(kableExtra)
 source("www/global.R")
+source("www/custom_css.R")
 ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                 tagList(
                   tags$head(tags$script(type="text/javascript", src = "code.js")),
@@ -14,7 +17,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                     includeMarkdown("www/home_page.md")))
                                ),
                       tabPanel(span(h3(tags$b("Goals")),style = "color:#002f54;"),
-                               fluidRow(
+                              fluidRow(
                                  column(width = 3,
                                         selectInput("sdg", span(tags$i("Select a goal"),style="color:black;font-size:18px"),
                                                     choices = unique(sdg_file$Goal_Name))
@@ -46,7 +49,16 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                             exit = animations$fading_exits$fadeOutRightBig
                                           ))),
                                  column(width = 1, offset = 1,
-                                       imageOutput("image")))
+                                       imageOutput("image", height = 5))
+                                        ),
+                              br(), br(),
+                              fluidRow(
+                                column(width = 12,
+                                tabsetPanel(type = "pills", 
+                                  tabPanel(span("List of Indicators",style="color:black; font-style: bold; font-size:16px"), dataTableOutput("indicator_list")),
+                                  tabPanel(span("Output", style="color:black; font-style: bold; font-size:16px"), plotOutput("pl")))
+                                 
+                                       ))
                                ))))
                     
 
@@ -57,7 +69,7 @@ server <- function(input, output)({
   output$image <- renderImage({
 
     filename = paste0("www/",input$sdg,".png")
-    list(src = filename, width = 80, height = 80)
+    list(src = filename, width = 80)
   }, deleteFile = FALSE)
 
   ## Definition and importance of each sdg
@@ -85,8 +97,21 @@ server <- function(input, output)({
     HTML(paste("<p style = 'color: black; font-size: 14px;'>", def, "To learn more about this goal,
                       <a href=", paste0("'",link ,"'"), ">click here.</a></p>"))
   })
+  
+  output$pl <- renderPlot({
+    hist(iris$Sepal.Length)
+  })
 
+  output$indicator_list <- renderDataTable({
+    df <- sdg_file %>% 
+            filter(Goal_Name == input$sdg) %>% 
+            arrange(Goal_Name, Target) %>%
+            select(Target, Indicator_Name)  
 
+   datatable(df, 
+             extensions = c('FixedHeader','Scroller'),
+             options = list(dom = 't', fixedHeader = TRUE))
+  })
 })
 
 shinyApp(ui, server)
