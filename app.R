@@ -19,46 +19,82 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                       tabPanel(span(h3(tags$b("Goals")),style = "color:#002f54;"),
                               fluidRow(
                                  column(width = 3,
-                                        selectInput("sdg", span(tags$i("Select a goal"),style="color:black;font-size:18px"),
-                                                    choices = unique(sdg_file$Goal_Name))
+                                        pickerInput(
+                                          inputId = "sdg",
+                                          label = span("Click to select a goal!",style="color:black;font-size:16px"), 
+                                          choices = unique(sdg_file$Goal_Name),
+                                          options = list(
+                                            style = "btn-danger")
+                                        )
                                         ),
-                                 column(width = 5, 
+                                 column(width = 7, 
                                         htmlOutput("narrative")),
                                  
-                                 column(width = 2,
-                                        dropdown(
-                                          tags$h5(""),
-                                          pickerInput(inputId = 'target',
-                                                      label = 'Select Target',
-                                                      choices = c("T1", "T2", "T3"),
-                                                      selected = "T1",
-                                                      options = list(`style` = "btn-primary"),
-                                                      width="380px"),
-                                          
-                                          pickerInput(inputId = 'indicator',
-                                                      label = 'Select Indicator',
-                                                      choices = c("Ind1", "Ind2", "Ind3"),
-                                                      selected = "Ind1",
-                                                      options = list(`style` = "btn-primary"),
-                                                      width="380px"),
-                                          
-                                          style = "unite", icon = icon("gear"),
-                                          status = "danger", width = "400px",
-                                          animate = animateOptions(
-                                            enter = animations$fading_entrances$fadeInLeftBig,
-                                            exit = animations$fading_exits$fadeOutRightBig
-                                          ))),
+                                 # column(width = 2,
+                                 #        dropdown(
+                                 #          tags$h5(""),
+                                 #          pickerInput(inputId = 'target',
+                                 #                      label = 'Select Target',
+                                 #                      choices = c("T1", "T2", "T3"),
+                                 #                      selected = "T1",
+                                 #                      options = list(`style` = "btn-primary"),
+                                 #                      width="380px"),
+                                 #          
+                                 #          pickerInput(inputId = 'indicator',
+                                 #                      label = 'Select Indicator',
+                                 #                      choices = c("Ind1", "Ind2", "Ind3"),
+                                 #                      selected = "Ind1",
+                                 #                      options = list(`style` = "btn-primary"),
+                                 #                      width="380px"),
+                                 #          
+                                 #          style = "unite", icon = icon("gear"),
+                                 #          status = "danger", width = "400px",
+                                 #          animate = animateOptions(
+                                 #            enter = animations$fading_entrances$fadeInLeftBig,
+                                 #            exit = animations$fading_exits$fadeOutRightBig
+                                 #          ))),
                                  column(width = 1, offset = 1,
                                        imageOutput("image", height = 5))
                                         ),
                               br(), br(),
-                              fluidRow(
-                                column(width = 12,
+                              fluidRow(style = "margin-left: 3px;",
                                 tabsetPanel(type = "pills", 
-                                  tabPanel(span("List of Indicators",style="color:black; font-style: bold; font-size:16px"), dataTableOutput("indicator_list")),
-                                  tabPanel(span("Output", style="color:black; font-style: bold; font-size:16px"), plotOutput("pl")))
+                                  tabPanel(span("List of Indicators",style="color:black; font-style: bold; font-size:16px"), 
+                                           dataTableOutput("indicator_list")),
+                                  tabPanel(span("Output", style="color:black; font-style: bold; font-size:16px"), 
+                                           fluidRow(style = "margin-left: 3px;",
+                                             br(),
+                                             column(width = 2, 
+                                                    dropdown(
+                                                      tags$h5(""),
+                                                      pickerInput(inputId = 'target',
+                                                                  label = 'Select Target',
+                                                                  choices = c(T1, T2, T3),
+                                                                  selected = "T1",
+                                                                  options = list(`style` = "btn-primary"),
+                                                                  width="950px"),
+                                                      
+                                                      pickerInput(inputId = 'indicator',
+                                                                  label = 'Select Indicator',
+                                                                  choices = c(I1, I2, I3),
+                                                                  selected = "Ind1",
+                                                                  options = list(`style` = "btn-primary"),
+                                                                  width="500px"),
+                                                      
+                                                      style = "unite", icon = icon("gear"),
+                                                      status = "danger", width = "1000px",
+                                                      animate = animateOptions(
+                                                        enter = animations$fading_entrances$fadeInLeftBig,
+                                                        exit = animations$fading_exits$fadeOutRightBig
+                                                      )))),
+                                           br(), br(),br(),
+                                           fluidRow(
+                                             column(width = 6, 
+                                           plotOutput("pl")),
+                                           column(width = 6, 
+                                                    plotOutput("pl2")))))
                                  
-                                       ))
+                                       )
                                ))))
                     
 
@@ -102,6 +138,10 @@ server <- function(input, output)({
     hist(iris$Sepal.Length)
   })
 
+  output$pl2 <- renderPlot({
+    hist(iris$Sepal.Width)
+  })
+  
   output$indicator_list <- renderDataTable({
     df <- sdg_file %>% 
             filter(Goal_Name == input$sdg) %>% 
