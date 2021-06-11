@@ -1,13 +1,16 @@
 # source("www/data_manipulation.R")
 # 
 ## Read in the dataset
-merged_df <- read_csv("www/merged_df.csv")
-merged_df <- merged_df %>% select(-X1)
+library(googlesheets4)
+library(tidyverse)
+merged_df <- read_rds("www/merged_df.rds")
+wb_sheet <- "https://docs.google.com/spreadsheets/d/1Mv73sv4XwuT_rgn8LP2M_367CtX_L5I6A6ZvmE5iZeY/edit#gid=618760682"
+sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
 
 ## Inputs lists
-goals_list <- unique(merged_df$Goal)
-topic_list <- unique(merged_df$Topic)
-indicator_list <- unique(merged_df$`Indicator Name`)
+goals_list <- as.character(sort(unique(merged_df$Goal)))
+topic_list <- sort(unique(merged_df$Topic))
+indicator_list <- sort(unique(merged_df$`Indicator Name`))
 
 ## Poverty targets
 T1 <- "Target 1. 1: By 2030, eradicate extreme poverty for all people everywhere, currently measured as people living on less than $1.25 a day"

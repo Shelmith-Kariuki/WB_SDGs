@@ -77,4 +77,4 @@ merged_df3 <- merged_df3 %>%
 
 
 ## Save the data externally
-write.csv(merged_df3, "www/merged_df.csv") 
+saveRDS(merged_df3, "www/merged_df.rds") 
