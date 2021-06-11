@@ -22,37 +22,14 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                         pickerInput(
                                           inputId = "sdg",
                                           label = span("Click to select a goal!",style="color:black;font-size:16px"), 
-                                          choices = unique(sdg_file$Goal_Name),
+                                          choices = goals_list,
                                           options = list(
                                             style = "btn-danger")
                                         )
                                         ),
                                  column(width = 7, 
                                         htmlOutput("narrative")),
-                                 
-                                 # column(width = 2,
-                                 #        dropdown(
-                                 #          tags$h5(""),
-                                 #          pickerInput(inputId = 'target',
-                                 #                      label = 'Select Target',
-                                 #                      choices = c("T1", "T2", "T3"),
-                                 #                      selected = "T1",
-                                 #                      options = list(`style` = "btn-primary"),
-                                 #                      width="380px"),
-                                 #          
-                                 #          pickerInput(inputId = 'indicator',
-                                 #                      label = 'Select Indicator',
-                                 #                      choices = c("Ind1", "Ind2", "Ind3"),
-                                 #                      selected = "Ind1",
-                                 #                      options = list(`style` = "btn-primary"),
-                                 #                      width="380px"),
-                                 #          
-                                 #          style = "unite", icon = icon("gear"),
-                                 #          status = "danger", width = "400px",
-                                 #          animate = animateOptions(
-                                 #            enter = animations$fading_entrances$fadeInLeftBig,
-                                 #            exit = animations$fading_exits$fadeOutRightBig
-                                 #          ))),
+  
                                  column(width = 1, offset = 1,
                                        imageOutput("image", height = 5))
                                         ),
@@ -67,16 +44,16 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                              column(width = 2, 
                                                     dropdown(
                                                       tags$h5(""),
-                                                      pickerInput(inputId = 'target',
-                                                                  label = 'Select Target',
-                                                                  choices = c(T1, T2, T3),
+                                                      pickerInput(inputId = 'topic',
+                                                                  label = 'Select Topic',
+                                                                  choices = topic_list,
                                                                   selected = "T1",
                                                                   options = list(`style` = "btn-primary"),
                                                                   width="950px"),
                                                       
                                                       pickerInput(inputId = 'indicator',
                                                                   label = 'Select Indicator',
-                                                                  choices = c(I1, I2, I3),
+                                                                  choices = indicator_list,
                                                                   selected = "Ind1",
                                                                   options = list(`style` = "btn-primary"),
                                                                   width="500px"),
@@ -110,7 +87,7 @@ server <- function(input, output)({
 
   ## Definition and importance of each sdg
   # output$definition <- renderText({
-  #   def <- sdg_file %>%
+  #   def <- sdg_file_codebook %>%
   #     filter(Goal_Name == input$sdg) %>%
   #     distinct(Narrative) %>%
   #     pull
@@ -120,13 +97,13 @@ server <- function(input, output)({
   ## narrative
   output$narrative <- renderText({
 
-    def <- sdg_file %>%
+    def <- sdg_file_codebook %>%
       filter(Goal_Name == input$sdg) %>%
       distinct(Narrative) %>%
       pull
  
     
-    link <- sdg_file %>%
+    link <- sdg_file_codebook %>%
       filter(Goal_Name == input$sdg) %>%
       distinct(Links) %>%
       pull()
@@ -143,7 +120,7 @@ server <- function(input, output)({
   })
   
   output$indicator_list <- renderDataTable({
-    df <- sdg_file %>% 
+    df <- sdg_file_codebook %>% 
             filter(Goal_Name == input$sdg) %>% 
             arrange(Goal_Name, Target) %>%
             select(Target, Indicator_Name)  
