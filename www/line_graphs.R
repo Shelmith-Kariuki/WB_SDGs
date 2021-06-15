@@ -10,16 +10,17 @@ merged_df <- read_rds("www/merged_df.rds")
 ## Goal: SDG 7 : Affordable and Clean Energy
 ## Topic: Environment: Energy production & use
 
-line_function <- function(goal, topic, indicatorname, title){
+line_function <- function(goal, topic, indicatorname,countryname, title ){
   
 my_df <- merged_df %>% 
           filter(!is.na(Goal)) %>%
-          filter(Goal == goal & Topic == topic & `Indicator Name` == indicatorname) 
+          filter(Goal == goal & Topic == topic & `Indicator Name` == indicatorname &
+                   `Country Name` == countryname) 
 
-my_df_onecountry <- my_df %>% filter(`Country Name` == "Kenya")
+# my_df_onecountry <- my_df %>% filter(`Country Name` == "Kenya")
 
 ## One country
-line1 <- try(ggplot(data = my_df_onecountry, aes(x = as.factor(Year), y = value, group = 1)) +
+line1 <- try(ggplot(data = my_df, aes(x = as.factor(Year), y = value, group = 1)) +
           geom_point(size = 1, color = "#409F4D") +
           geom_line(size = 1, color = "#409F4D") +
           plot_theme + 

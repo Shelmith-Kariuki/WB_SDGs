@@ -62,3 +62,6 @@ plot_theme <- theme(axis.line = element_line(linetype = "solid"),
                     legend.position = "right", 
                     legend.direction = "vertical",
                     plot.caption =  element_text(family = "serif", size = 14)) 
+
+list_countries <- unique(merged_df$`Country Name`)
+years <- as.character(c(1990:2012))

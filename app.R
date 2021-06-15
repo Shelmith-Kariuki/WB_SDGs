@@ -8,9 +8,10 @@ library(shinyalert)
 source("www/global.R")
 source("www/custom_css.R")
 source("www/line_graphs.R")
+source("www/leaflet_function.R")
 
 ui <- fluidPage(title = "WDI: Sustainable Development Goals",
-                useShinyalert(), 
+                useSweetAlert(), 
                 tagList(
                   tags$head(tags$script(type="text/javascript", src = "code.js")),
                   navbarPage(
@@ -67,10 +68,27 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                       )))),
                                            br(), br(),br(),
                                            fluidRow(
-                                             column(width = 5, 
-                                                    withSpinner(leafletOutput("pl"), color = "#d5184e")),
-                                           column(width = 7, 
-                                                  withSpinner(plotOutput("pl2"), color = "#d5184e")))))
+                                             column(width = 6, 
+                                                    fluidRow(
+                                                      setSliderColor("#d5184e", 1),
+                                                      sliderTextInput(
+                                                        inputId = "year_slider",
+                                                        label = "Select Year", 
+                                                        grid = TRUE,
+                                                        force_edges = TRUE,
+                                                        choices = years,
+                                                        width = "190%"
+                                                      )),
+                                                    fluidRow(
+                                                      withSpinner(leafletOutput('pl'), color = "#d5184e")
+                                                    )),
+                                           column(width = 6, 
+                                                  fluidRow(
+                                                    column(width = 3, offset = 0.5,selectInput("cn1", "Select Country", list_countries, selected = "Kenya")),
+                                                    column(width = 3,offset = 4, selectInput("cn2", "Add Country", list_countries))
+                                                  ),
+                                                  fluidRow(
+                                                  withSpinner(plotOutput("pl2"), color = "#d5184e"))))))
                                  
                                        )
                                ))))
@@ -86,48 +104,55 @@ server <- function(input, output, session)({
     list(src = filename, width = 800)
   }, deleteFile = FALSE)
 
-  ## Definition and importance of each sdg
-  # output$definition <- renderText({
-  #   def <- sdg_file_codebook %>%
-  #     filter(Goal_Name == input$sdg) %>%
-  #     distinct(Narrative) %>%
-  #     pull
-  #   def
-  # })
 
-  ## narrative
-  # output$narrative <- renderText({
-  # 
-  #   def <- sdg_file_codebook %>%
-  #     filter(Goal_Name == input$sdg) %>%
-  #     distinct(Narrative) %>%
-  #     pull
-  # 
-  #   
-  #   link <- sdg_file_codebook %>%
-  #     filter(Goal_Name == input$sdg) %>%
-  #     distinct(Links) %>%
-  #     pull()
-  #   HTML(paste("<p style = 'color: black; font-size: 14px;'>", def, "To learn more about this goal,
-  #                     <a href=", paste0("'",link ,"'"), ">click here.</a></p>"))
-  # })
-  
-  # output$pl <- renderLeaflet({
-  #   lm
-  # })
+  output$pl <- renderLeaflet({
+      leaflet(merged_mapping_df) %>% 
+      addTiles() %>% 
+      setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
+      
+    })
+    # observers
+    # selected country
+    selectedyear <- reactive({
+      merged_mapping_df %>% 
+        filter(Year == input$year_slider)
+    })
+    observe({
+      pal <- colorBin(palette = "YlOrRd", domain = selectedyear()$value)
+      labels <- sprintf(
+        "<strong>%s</strong><br/><strong>%s</strong>%g<br/><strong>%s</strong>%g",
+        selectedyear()$ADM0_NAME,"Year: ",selectedyear()$Year,"Value: ",
+        selectedyear()$value) %>%
+        lapply(htmltools::HTML)
+
+      leafletProxy('pl') %>%
+        addPolygons(data = selectedyear() , color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(selectedyear()$value),
+                    highlight = highlightOptions(
+                      weight = 4,
+                      color = "#397E4A",
+                      dashArray = "",
+                      bringToFront = TRUE),
+                    label = labels,
+                    labelOptions = labelOptions(
+                      style = list("font-weight" = "normal", padding = "3px 8px"),
+                      textsize = "15px",
+                      direction = "auto")) #%>%
+        #addLegend(position = c("bottomright"),pal = pal, values = ~selectedyear()$value, title = "")
+      # Use a separate observer to recreate the legend as needed.
+      observe({
+        proxy <- leafletProxy("pl", data = merged_mapping_df)
+        
+        # Remove any existing legend, and only if the legend is
+        # enabled, create a new one.
+          proxy %>% clearControls()
+          pal <- colorBin(palette = "YlOrRd", domain = merged_mapping_df$value)
+          proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = "",
+          )
+
+      })
+  })
 
 
-  # output$indicator_list <- renderDataTable({
-  #   df <- goal_target_cols %>% 
-  #           filter(Goal_Name == input$sdg) %>% 
-  #           arrange(Goal_Name, Target2) %>%
-  #           select(Target2, Indicator_Name)  
-  # 
-  #  datatable(df, 
-  #            extensions = c('FixedHeader','Scroller'),
-  #            options = list(dom = 't', fixedHeader = TRUE))
-  # })
- 
 ## Specific targets for each goal
 output$targets <- renderDataTable({
   targs <- goal_target_cols %>% 
@@ -166,14 +191,18 @@ observeEvent(topic_reactive(), {
 
 ## Line graphs
 output$pl2 <- renderPlot({
-  line_function(input$sdg, input$topic, input$indicator, input$indicator)
+  line_function(input$sdg, input$topic, input$indicator,input$cn1, input$indicator)
   
 })
 
 ## Pop up messages for error
-observeEvent(input$pl2, {
-  # Show a modal when the button is pressed
-  shinyalert("Oops!", "Data doesn't exist!", type = "error")
+observeEvent(input$error, {
+  sendSweetAlert(
+    session = session,
+    title = "Error...",
+    text = "Oups !",
+    type = "error"
+  )
 })
 
 })

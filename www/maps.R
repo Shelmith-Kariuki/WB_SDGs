@@ -32,17 +32,19 @@ mapping_df <- merged_df %>%
 merged_mapping_df <- africa_shp %>% 
                         left_join(.,mapping_df,  by = c("ISO3" = "Country Code")) 
 
-## Reshape the data so that the years are on one column
-merged_mapping_df2 <- merged_mapping_df %>% 
-                        gather("Year", "value", `1990`:`2019`, na.rm = TRUE) %>% 
-                        mutate(Year = as.numeric(Year)) %>% 
-                        arrange(ADM0_NAME, Goal, Topic, `Indicator Code`, Year)
+saveRDS(merged_mapping_df, "www/merged_mapping_df.rds")
 
+## Reshape the data so that the years are on one column
+# merged_mapping_df2 <- merged_mapping_df %>% 
+#                         gather("Year", "value", `1990`:`2019`, na.rm = TRUE) %>% 
+#                         mutate(Year = as.numeric(Year)) %>% 
+#                         arrange(ADM0_NAME, Goal, Topic, `Indicator Code`, Year)
+# 
 
 ## Generate centroids
-merged_mapping_df2 <- merged_mapping_df2 %>% 
-  mutate(
-    lon = map_dbl(geometry, ~st_centroid(.x)[[1]]),
-    lat = map_dbl(geometry, ~st_centroid(.x)[[2]]))
-
-write_rds(merged_mapping_df2, "www/merged_mapping_df.rds")
+# merged_mapping_df2 <- merged_mapping_df2 %>% 
+#   mutate(
+#     lon = map_dbl(geometry, ~st_centroid(.x)[[1]]),
+#     lat = map_dbl(geometry, ~st_centroid(.x)[[2]]))
+# 
+# write_rds(merged_mapping_df2, "www/merged_mapping_df.rds")
