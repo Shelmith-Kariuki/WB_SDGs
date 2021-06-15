@@ -6,9 +6,11 @@ library(tidyverse)
 merged_df <- read_rds("www/merged_df.rds")
 wb_sheet <- "https://docs.google.com/spreadsheets/d/1Mv73sv4XwuT_rgn8LP2M_367CtX_L5I6A6ZvmE5iZeY/edit#gid=618760682"
 sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
+goal_target_cols <- read_sheet(wb_sheet,sheet = "goal_target")
 
 ## Inputs lists
-goals_list <- as.character(sort(unique(merged_df$Goal)))
+goals_list <- unique(as.character(sort(merged_df$Goal)))
+target_list <- goal_target_cols$Target
 topic_list <- sort(unique(merged_df$Topic))
 indicator_list <- sort(unique(merged_df$`Indicator Name`))
 
@@ -23,8 +25,40 @@ I2 <- "Multidimensional poverty headcount ratio (% of total population)"
 I3 <- "Multidimensional poverty headcount ratio, children (% of child population)"
 
 
+## Background colors
 
+goal_target_cols <-goal_target_cols %>% 
+                      mutate(bg_color_scheme = paste0("<div color:white; style='background: ",Goal_col,";'>",Goal_Name,"</div>"))
 
-
+goal_target_cols_sp <- unique(goal_target_cols$bg_color_scheme)
 # selectInput("sdg", span(tags$i("Select a goal"),style="color:black;font-size:18px"),
 #             choices = unique(sdg_file$Goal_Name))
+#             
+## 7. Map theme ----------------------------------------------------------
+map_theme <- theme(axis.line = element_blank(), 
+                   axis.title = element_blank(), 
+                   axis.text = element_blank(),
+                   plot.title = element_text(family = "serif", size = 16, face = "bold"), 
+                   axis.ticks = element_blank(),
+                   panel.grid.major = element_blank(),
+                   panel.grid.minor = element_blank(),
+                   plot.background = element_rect("white", color = NA),
+                   panel.background = element_rect("white", color = NA),
+                   legend.position = "bottom", 
+                   legend.direction = "horizontal",
+                   legend.text = element_text(family = "serif", size = 12, colour = "black"),
+                   legend.title = element_text(family = "serif", size = 14, colour = "black"),
+                   plot.caption =  element_text(family = "serif", size = 14))
+
+## 8. Plot themes ----------------------------------------------------------
+plot_theme <- theme(axis.line = element_line(linetype = "solid"), 
+                    axis.title = element_text(family = "serif", size = 18), 
+                    axis.text = element_text(family = "serif", size = 14, colour = "black"),
+                    panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    plot.title = element_text(family = "serif", size = 20, face = "bold"), 
+                    plot.background = element_rect("white", color = NA),
+                    panel.background = element_rect("white", color = NA),
+                    legend.position = "right", 
+                    legend.direction = "vertical",
+                    plot.caption =  element_text(family = "serif", size = 14)) 
