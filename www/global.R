@@ -64,4 +64,11 @@ plot_theme <- theme(axis.line = element_line(linetype = "solid"),
                     plot.caption =  element_text(family = "serif", size = 14)) 
 
 list_countries <- unique(merged_df$`Country Name`)
-years <- as.character(c(1990:2012))
+
+
+low_income <- merged_df %>% filter(`Income Group` == "Low income") %>% distinct(`Country Name`) %>% pull()
+lower_middle_income <- merged_df %>% filter(`Income Group` == "Lower middle income") %>% distinct(`Country Name`) %>% pull()
+upper_middle_income <- merged_df %>% filter(`Income Group` == "Upper middle income") %>% distinct(`Country Name`) %>% pull()
+high_income <- merged_df %>% filter(`Income Group` == "High income") %>% distinct(`Country Name`) %>% pull()
+
+years <- as.character(c(1990:2020))

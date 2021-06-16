@@ -62,33 +62,73 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                       
                                                       style = "unite", icon = icon("gear"),
                                                       status = "danger", width = "1000px",
+                                                      tooltip = tooltipOptions(title = "Click to select topic and indicator !"),
                                                       animate = animateOptions(
                                                         enter = animations$fading_entrances$fadeInLeftBig,
                                                         exit = animations$fading_exits$fadeOutRightBig
                                                       )))),
                                            br(), br(),br(),
                                            fluidRow(
-                                             column(width = 6, 
+                                             column(width = 4, 
                                                     fluidRow(
-                                                      setSliderColor("#d5184e", 1),
+                                                      uiOutput("slider_color"),
                                                       sliderTextInput(
                                                         inputId = "year_slider",
                                                         label = "Select Year", 
                                                         grid = TRUE,
                                                         force_edges = TRUE,
-                                                        choices = years,
+                                                        choices = years, selected = "1990",
                                                         width = "190%"
                                                       )),
                                                     fluidRow(
-                                                      withSpinner(leafletOutput('pl'), color = "#d5184e")
+                                                      withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
-                                           column(width = 6, 
+                                           column(width = 8, 
                                                   fluidRow(
-                                                    column(width = 3, offset = 0.5,selectInput("cn1", "Select Country", list_countries, selected = "Kenya")),
-                                                    column(width = 3,offset = 4, selectInput("cn2", "Add Country", list_countries))
-                                                  ),
+                                                    column(width = 5, offset = 8,
+                                                           
+                                                           dropdown(
+                                                             tags$h5(""),
+                                                             pickerInput(inputId = 'cn1',
+                                                                         label = 'Select Country',
+                                                                         choices = list(
+                                                                           `Low Income` = low_income,
+                                                                           `Lower Middle Income`= lower_middle_income,
+                                                                           `Upper Middle Income` = upper_middle_income,
+                                                                           `High Income` = high_income
+                                                                         ),
+                                                                         selected = "Burkina Faso",
+                                                                         options = list(`style` = "btn-primary"),
+                                                                         width="290px"),
+                                                             
+                                                             pickerInput(inputId = 'cn2',
+                                                                         label = 'Add Country',
+                                                                         choices = list("None",
+                                                                           `Low Income` = low_income,
+                                                                           `Lower Middle Income`= lower_middle_income,
+                                                                           `Upper Middle Income` = upper_middle_income,
+                                                                           `High Income` = high_income
+                                                                         ),
+                                                                         selected = "Burkina Faso",
+                                                                         multiple = TRUE,
+                                                                         width="290px",
+                                                                         options = pickerOptions(`style` = "btn-primary",
+                                                                                                 maxOptions = 5, 
+                                                                                        maxOptionsText = "You can only select up to 5 countries", 
+                                                                                        noneSelectedText = "Select comparison countries")),
+                                                             
+                                                             style = "unite", icon = icon("plus"),
+                                                             status = "danger", width = "320px",
+                                                             tooltip = tooltipOptions(title = "Click to select country !"),
+                                                             animate = animateOptions(
+                                                               enter = animations$fading_entrances$fadeInLeftBig,
+                                                               exit = animations$fading_exits$fadeOutRightBig
+                                                             )))),
                                                   fluidRow(
-                                                  withSpinner(plotOutput("pl2"), color = "#d5184e"))))))
+                                                  withSpinner(plotOutput("pl2", height = 500), color = "#d5184e")))),
+                                           fluidRow(
+                                             
+                                           )))
                                  
                                        )
                                ))))
@@ -97,6 +137,17 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
 
 server <- function(input, output, session)({
 
+  ## Slider color
+  output$slider_color <- renderUI({
+    sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
+    setSliderColor(sdg_col, 1)
+  })
+  
+  ## Topic and indicator selector color
+  
+  ## Country selector color
+  
+  
   ## Add an image for each of the indicator
   output$image <- renderImage({
 
@@ -191,9 +242,17 @@ observeEvent(topic_reactive(), {
 
 ## Line graphs
 output$pl2 <- renderPlot({
-  line_function(input$sdg, input$topic, input$indicator,input$cn1, input$indicator)
+  sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
+  sdg_palette <- trimws(unlist(str_split(goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Palette) %>% pull(), 
+                           pattern = ",")))
+  if(input$cn2 == "None"|(input$cn1 %in% input$cn2 & length(input$cn2) == 1)){
+    line_function(input$sdg, input$topic, input$indicator,input$cn1,sdg_col, input$indicator) 
+  }else{
+    line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2, sdg_palette, input$indicator)
+  }
   
-})
+  
+}, height = 560)
 
 ## Pop up messages for error
 observeEvent(input$error, {
