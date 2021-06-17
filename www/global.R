@@ -1,8 +1,17 @@
-# source("www/data_manipulation.R")
-# 
-## Read in the dataset
+## Load the packages
 library(googlesheets4)
 library(tidyverse)
+library(shiny)
+library(shinyWidgets)
+library(tidyverse)
+library(DT)
+library(kableExtra)
+library(shinycssloaders)
+library(shinyalert)
+library(sf)
+library(tidyverse)
+
+## Read in the datasets
 merged_df <- read_rds("www/merged_df.rds")
 wb_sheet <- "https://docs.google.com/spreadsheets/d/1Mv73sv4XwuT_rgn8LP2M_367CtX_L5I6A6ZvmE5iZeY/edit#gid=618760682"
 sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
@@ -14,27 +23,32 @@ target_list <- goal_target_cols$Target
 topic_list <- sort(unique(merged_df$Topic))
 indicator_list <- sort(unique(merged_df$`Indicator Name`))
 
-## Poverty targets
-T1 <- "Target 1. 1: By 2030, eradicate extreme poverty for all people everywhere, currently measured as people living on less than $1.25 a day"
-T2 <- "Target 1. 2: By 2030, reduce at least by half the proportion of men, women and children of all ages living in poverty in all its dimensions according to national definitions"
-T3 <- "Target 2.1: By 2030, end hunger and ensure access by all people, in particular the poor and people in vulnerable situations, including infants, to safe, nutritious and sufficient food all year round"
+## pickerInput function
+picker_input_function <- function(id, title, choices){
+  
+  pickerInput(
+    inputId = id,
+    label = span(title, style="color:black;font-size:16px"), 
+    choices = choices)
+  
+}
 
-## Poverty indicators
-I1 <- "Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)"
-I2 <- "Multidimensional poverty headcount ratio (% of total population)"
-I3 <- "Multidimensional poverty headcount ratio, children (% of child population)"
+## reactive ui inputs
+### sdg banners
+### slider components (colors and min max years)
+### countries present in each subset of data (per goal, topic and indicator) 
+### 
+list_countries <- unique(merged_df$`Country Name`)
 
 
-## Background colors
+low_income <- merged_df %>% filter(`Income Group` == "Low income") %>% distinct(`Country Name`) %>% pull()
+lower_middle_income <- merged_df %>% filter(`Income Group` == "Lower middle income") %>% distinct(`Country Name`) %>% pull()
+upper_middle_income <- merged_df %>% filter(`Income Group` == "Upper middle income") %>% distinct(`Country Name`) %>% pull()
+high_income <- merged_df %>% filter(`Income Group` == "High income") %>% distinct(`Country Name`) %>% pull()
 
-goal_target_cols <-goal_target_cols %>% 
-                      mutate(bg_color_scheme = paste0("<div color:white; style='background: ",Goal_col,";'>",Goal_Name,"</div>"))
+years <- as.character(c(1990:2020))
 
-goal_target_cols_sp <- unique(goal_target_cols$bg_color_scheme)
-# selectInput("sdg", span(tags$i("Select a goal"),style="color:black;font-size:18px"),
-#             choices = unique(sdg_file$Goal_Name))
-#             
-## 7. Map theme ----------------------------------------------------------
+## Map theme ----------------------------------------------------------
 map_theme <- theme(axis.line = element_blank(), 
                    axis.title = element_blank(), 
                    axis.text = element_blank(),
@@ -50,7 +64,7 @@ map_theme <- theme(axis.line = element_blank(),
                    legend.title = element_text(family = "serif", size = 14, colour = "black"),
                    plot.caption =  element_text(family = "serif", size = 14))
 
-## 8. Plot themes ----------------------------------------------------------
+## Plot themes ----------------------------------------------------------
 plot_theme <- theme(axis.line = element_line(linetype = "solid"), 
                     axis.title = element_text(family = "serif", size = 18), 
                     axis.text = element_text(family = "serif", size = 14, colour = "black"),
@@ -63,12 +77,3 @@ plot_theme <- theme(axis.line = element_line(linetype = "solid"),
                     legend.direction = "vertical",
                     plot.caption =  element_text(family = "serif", size = 14)) 
 
-list_countries <- unique(merged_df$`Country Name`)
-
-
-low_income <- merged_df %>% filter(`Income Group` == "Low income") %>% distinct(`Country Name`) %>% pull()
-lower_middle_income <- merged_df %>% filter(`Income Group` == "Lower middle income") %>% distinct(`Country Name`) %>% pull()
-upper_middle_income <- merged_df %>% filter(`Income Group` == "Upper middle income") %>% distinct(`Country Name`) %>% pull()
-high_income <- merged_df %>% filter(`Income Group` == "High income") %>% distinct(`Country Name`) %>% pull()
-
-years <- as.character(c(1990:2020))

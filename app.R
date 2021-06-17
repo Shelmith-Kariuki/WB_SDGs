@@ -1,10 +1,3 @@
-library(shiny)
-library(shinyWidgets)
-library(tidyverse)
-library(DT)
-library(kableExtra)
-library(shinycssloaders)
-library(shinyalert)
 source("www/global.R")
 source("www/custom_css.R")
 source("www/line_graphs.R")
@@ -29,10 +22,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                           inputId = "sdg",
                                           label = span("Click to select a goal!",style="color:black;font-size:16px"), 
                                           choices = goals_list)),
-                                 # column(width = 7, 
-                                 #        htmlOutput("narrative")),
-  
-                                 column(width = 8, offset = 1,
+                               column(width = 8, offset = 1,
                                        imageOutput("image", height = 5))
                                         ),
                               br(), br(),
@@ -71,15 +61,9 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                            fluidRow(
                                              column(width = 4, 
                                                     fluidRow(
-                                                      uiOutput("slider_color"),
-                                                      sliderTextInput(
-                                                        inputId = "year_slider",
-                                                        label = "Select Year", 
-                                                        grid = TRUE,
-                                                        force_edges = TRUE,
-                                                        choices = years, selected = "1990",
-                                                        width = "190%"
-                                                      )),
+                                                      #uiOutput("slider_color"),
+                                                      tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #052D56}")),
+                                                      uiOutput("year_slider")),
                                                     fluidRow(
                                                       withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
@@ -125,10 +109,8 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                                exit = animations$fading_exits$fadeOutRightBig
                                                              )))),
                                                   fluidRow(
-                                                  withSpinner(plotOutput("pl2", height = 500), color = "#d5184e")))),
-                                           fluidRow(
-                                             
-                                           )))
+                                                  withSpinner(plotOutput("pl2", height = 500), color = "#d5184e"))))
+                                           ))
                                  
                                        )
                                ))))
@@ -136,40 +118,97 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
 
 
 server <- function(input, output, session)({
-
-  ## Slider color
-  output$slider_color <- renderUI({
-    sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
-    setSliderColor(sdg_col, 1)
+  
+  # List of goals
+  sdg_reactive <- reactive({
+    merged_df %>% 
+      filter(Goal == input$sdg)
   })
-  
-  ## Topic and indicator selector color
-  
-  ## Country selector color
-  
-  
-  ## Add an image for each of the indicator
-  output$image <- renderImage({
 
+  # Add an image for each of the goals
+  output$image <- renderImage({
+    
     filename = paste0("www/sdg_banners/",input$sdg,".png")
     list(src = filename, width = 800)
   }, deleteFile = FALSE)
+  
+  # Specific targets for each goal
+  output$targets <- renderDataTable({
+    targs <- goal_target_cols %>% 
+      filter(Goal_Name == input$sdg) %>% 
+      distinct(Target2)
+    
+    datatable(targs, 
+              extensions = c('FixedHeader','Scroller'),
+              rownames = FALSE, colnames = "",
+              options = list(dom = 't', fixedHeader = TRUE))
+  })
+  
+  # The topics shown should be for each goal
+  observeEvent(sdg_reactive(), {
+    choices <- sdg_reactive() %>% distinct(Topic) %>% pull()
+    updatePickerInput(session, "topic", choices = choices)
+  })
+  
+  # The indicators shown should be for each topic
+  topic_reactive <- reactive({
+    merged_df %>% 
+      filter(Goal == input$sdg & Topic == input$topic)
+  })
+  
+  observeEvent(topic_reactive(), {
+    choices <- topic_reactive() %>% distinct(`Indicator Name`) %>% pull()
+    updatePickerInput(session, "indicator", choices = choices)
+  })
+  
+  # Slider color depends on the color theme of the SDG
+  # output$slider_color <- renderUI({
+  #   sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
+  #   setSliderColor(sdg_col, 1)
+  # })
 
+  #Update years slicer
+  year_reactive <- reactive({
+    df <- merged_df %>% 
+      filter(`Indicator Name` == input$indicator)
+  })
+  
+  output$year_slider <- renderUI({
+    req(input$indicator)
+    sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
+    years <- as.character(sort(year_reactive() %>% distinct(Year) %>% pull()))
+    setSliderColor(sdg_col, 1)
+    sliderTextInput(
+      inputId = "what",
+      label = "Select Year", 
+      grid = TRUE,
+      force_edges = TRUE,
+      choices = years, 
+      width = "190%"
+    ) 
+  })
 
+  
+  # Leaflet output
+  ## Parts of the leaflet map that are static
   output$pl <- renderLeaflet({
-      leaflet(merged_mapping_df) %>% 
-      addTiles() %>% 
+      leaflet(merged_mapping_df) %>%
+      addTiles() %>%
       setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
-      
+
     })
-    # observers
-    # selected country
+
+    ## observers: leaflet map should change per year selected
     selectedyear <- reactive({
-      merged_mapping_df %>% 
-        filter(Year == input$year_slider)
+      df <- merged_mapping_df %>%
+        filter(Year == 2004)
     })
+
+
+    ## Parts of the leaflet map that are dynamic (depends on the year selected)
     observe({
       pal <- colorBin(palette = "YlOrRd", domain = selectedyear()$value)
+
       labels <- sprintf(
         "<strong>%s</strong><br/><strong>%s</strong>%g<br/><strong>%s</strong>%g",
         selectedyear()$ADM0_NAME,"Year: ",selectedyear()$Year,"Value: ",
@@ -187,12 +226,12 @@ server <- function(input, output, session)({
                     labelOptions = labelOptions(
                       style = list("font-weight" = "normal", padding = "3px 8px"),
                       textsize = "15px",
-                      direction = "auto")) #%>%
-        #addLegend(position = c("bottomright"),pal = pal, values = ~selectedyear()$value, title = "")
-      # Use a separate observer to recreate the legend as needed.
+                      direction = "auto"))
+
+      ## Use a separate observer to recreate the legend as needed.
       observe({
         proxy <- leafletProxy("pl", data = merged_mapping_df)
-        
+
         # Remove any existing legend, and only if the legend is
         # enabled, create a new one.
           proxy %>% clearControls()
@@ -203,50 +242,14 @@ server <- function(input, output, session)({
       })
   })
 
-
-## Specific targets for each goal
-output$targets <- renderDataTable({
-  targs <- goal_target_cols %>% 
-            filter(Goal_Name == input$sdg) %>% 
-            distinct(Target2)
-  
-  datatable(targs, 
-            extensions = c('FixedHeader','Scroller'),
-            rownames = FALSE, colnames = "",
-            options = list(dom = 't', fixedHeader = TRUE))
-})
-
-
-## List of goals
-sdg_reactive <- reactive({
-  merged_df %>% 
-    filter(Goal == input$sdg)
-})
-
-## The topics shown should be for each goal
-observeEvent(sdg_reactive(), {
-  choices <- sdg_reactive() %>% distinct(Topic) %>% pull()
-  updatePickerInput(session, "topic", choices = choices)
-})
-
-## The indicators shown should be for each topic
-topic_reactive <- reactive({
-  merged_df %>% 
-    filter(Goal == input$sdg & Topic == input$topic)
-})
-
-observeEvent(topic_reactive(), {
-  choices <- topic_reactive() %>% distinct(`Indicator Name`) %>% pull()
-  updatePickerInput(session, "indicator", choices = choices)
-})
-
-## Line graphs
+# Line graph
 output$pl2 <- renderPlot({
+  req(input$sdg, input$topic, input$indicator)
   sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
   sdg_palette <- trimws(unlist(str_split(goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Palette) %>% pull(), 
                            pattern = ",")))
-  if(input$cn2 == "None"|(input$cn1 %in% input$cn2 & length(input$cn2) == 1)){
-    line_function(input$sdg, input$topic, input$indicator,input$cn1,sdg_col, input$indicator) 
+  if(input$cn1 == input$cn2 | (any("None" %in% input$cn2) & length(unique(input$cn2))==1 )){
+    line_function(input$sdg, input$topic, input$indicator,input$cn1, sdg_col, input$indicator) 
   }else{
     line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2, sdg_palette, input$indicator)
   }
@@ -254,15 +257,6 @@ output$pl2 <- renderPlot({
   
 }, height = 560)
 
-## Pop up messages for error
-observeEvent(input$error, {
-  sendSweetAlert(
-    session = session,
-    title = "Error...",
-    text = "Oups !",
-    type = "error"
-  )
-})
 
 })
 

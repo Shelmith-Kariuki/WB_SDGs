@@ -7,12 +7,13 @@ library(rmapshaper)
 merged_df <- read_rds("www/merged_df.rds")
 
 ## Subset the dataset
-
-my_df <- merged_df %>% 
+# 
+my_df <- merged_df %>%
             filter(Goal == "SDG 3 : Good Health and Well-being" &
                   Topic == "Health: Mortality" &
                   `Indicator Name` == "Mortality rate, under-5 (per 1,000 live births)")
 
+# my_df <- merged_df
 
 ## Read in the shapefiles
 africa_shp <- read_sf("www/afr_g2014_2013_0/afr_g2014_2013_0.shp")
@@ -36,38 +37,3 @@ my_df <- my_df %>%
 ## Merge the data with the shapefiles
 merged_mapping_df <- africa_shp %>% 
   left_join(.,my_df,  by = c("ISO3" = "Country Code")) 
-
-# leaflet_function <- function(year){
-# 
-# ## Filter to only get one year
-# merged_mapping_df <- merged_mapping_df %>% 
-#                       filter(Year == year)
-#   
-# 
-# ### leaflet
-# pal <- colorBin(palette = "YlOrRd", domain = merged_mapping_df$value)
-# labels <- sprintf(
-#   "<strong>%s</strong><br/><strong>%s</strong>%g<br/><strong>%s</strong>%g",
-#   merged_mapping_df$ADM0_NAME,"Year: ",merged_mapping_df$Year,"Value: ", merged_mapping_df$value
-# ) %>% lapply(htmltools::HTML)
-# 
-# 
-# 
-# 
-# lm <- leaflet(merged_mapping_df) %>%
-#   addTiles() %>% 
-#   setView(lng = 20.48554, lat = 6.57549,  zoom = 3) %>% 
-#   addPolygons(color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(value),
-#               highlight = highlightOptions(
-#                 weight = 4,
-#                 color = "#397E4A",
-#                 dashArray = "",
-#                 bringToFront = TRUE),
-#               label = labels,
-#               labelOptions = labelOptions(
-#                 style = list("font-weight" = "normal", padding = "3px 8px"),
-#                 textsize = "15px",
-#                 direction = "auto")) %>% 
-#   addLegend(position = c("bottomright"),pal = pal, values = ~value, title = "")
-# 
-# }
