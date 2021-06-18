@@ -15,6 +15,7 @@ indicators_interest <- read_sheet(wb_sheet,sheet = "Indicators_Interest")
 series_df <- read_sheet(wb_sheet,sheet = "Series") 
 sdgs_all <- read_csv("www/SDGS - Sheet2 (3).csv")
 goal_target_cols <- read_sheet(wb_sheet,sheet = "goal_target")
+series_source <- read_sheet(wb_sheet,sheet = "Country-Series")
 
 ## Manipulate the datasets and merge them
 country_data <- country_data %>% 
@@ -91,6 +92,11 @@ merged_df4 <- merged_df3 %>%
   gather("Year", "value", `1990`:`2019`, na.rm = TRUE) %>% 
   mutate(Year = as.numeric(Year), value = as.numeric(trimws(value))) %>% 
   arrange(`Country Name`, Goal, Topic, `Indicator Code`, Year)
+
+## Merge the data with series_source so that we can know the source for each indicator
+series_source <- series_source %>% mutate(across(everything(), ~trimws(.)))
+# merged_df5 <- merged_df4 %>% 
+#                 left_join(., series_source, by = c("Country Code" = "CountryCode", "Indicator Code" = "SeriesCode"))
 
 ## Save the data externally
 saveRDS(merged_df4, "www/merged_df.rds")

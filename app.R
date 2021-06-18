@@ -32,7 +32,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                            dataTableOutput("targets")),
                                   tabPanel(span("Output", style="color:black; font-style: bold; font-size:16px"), 
                                            fluidRow(style = "margin-left: 3px;",
-                                             br(),
+                                             #br(),
                                              column(width = 2, 
                                                     dropdown(
                                                       tags$h5(""),
@@ -56,10 +56,49 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                       animate = animateOptions(
                                                         enter = animations$fading_entrances$fadeInLeftBig,
                                                         exit = animations$fading_exits$fadeOutRightBig
-                                                      )))),
-                                           br(), br(),br(),
-                                           fluidRow(
-                                             column(width = 4, 
+                                                      ))),
+                                             column(width = 2, offset = 7,
+                                                    dropdown(
+                                                               tags$h5(""),
+                                                               pickerInput(inputId = 'cn1',
+                                                                           label = 'Select Country',
+                                                                           choices = list(
+                                                                             `Low Income` = low_income,
+                                                                             `Lower Middle Income`= lower_middle_income,
+                                                                             `Upper Middle Income` = upper_middle_income,
+                                                                             `High Income` = high_income
+                                                                           ),
+                                                                           selected = "Kenya",
+                                                                           options = list(`style` = "btn-primary"),
+                                                                           width="290px"),
+                                                               
+                                                               pickerInput(inputId = 'cn2',
+                                                                           label = 'Add Country',
+                                                                           choices = list("None",
+                                                                                          `Low Income` = low_income,
+                                                                                          `Lower Middle Income`= lower_middle_income,
+                                                                                          `Upper Middle Income` = upper_middle_income,
+                                                                                          `High Income` = high_income
+                                                                           ),
+                                                                           selected = "Uganda",
+                                                                           multiple = TRUE,
+                                                                           width="290px",
+                                                                           options = pickerOptions(`style` = "btn-primary",
+                                                                                                   maxOptions = 5, 
+                                                                                                   maxOptionsText = "You can only select up to 5 countries", 
+                                                                                                   noneSelectedText = "Select comparison countries")),
+                                                               
+                                                               style = "unite", icon = icon("plus"),
+                                                               status = "danger", width = "320px",
+                                                               tooltip = tooltipOptions(title = "Click to select country !"),
+                                                               animate = animateOptions(
+                                                                 enter = animations$fading_entrances$fadeInLeftBig,
+                                                                 exit = animations$fading_exits$fadeOutRightBig
+                                                               )))),
+                                           #),
+                                           br(),
+                                           fluidRow(style = "margin-left: 3px;",
+                                             column(width = 3, 
                                                     fluidRow(
                                                       #uiOutput("slider_color"),
                                                       tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #052D56}")),
@@ -67,50 +106,9 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                     fluidRow(
                                                       withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
-                                           column(width = 8, 
-                                                  fluidRow(
-                                                    column(width = 5, offset = 8,
-                                                           
-                                                           dropdown(
-                                                             tags$h5(""),
-                                                             pickerInput(inputId = 'cn1',
-                                                                         label = 'Select Country',
-                                                                         choices = list(
-                                                                           `Low Income` = low_income,
-                                                                           `Lower Middle Income`= lower_middle_income,
-                                                                           `Upper Middle Income` = upper_middle_income,
-                                                                           `High Income` = high_income
-                                                                         ),
-                                                                         selected = "Burkina Faso",
-                                                                         options = list(`style` = "btn-primary"),
-                                                                         width="290px"),
-                                                             
-                                                             pickerInput(inputId = 'cn2',
-                                                                         label = 'Add Country',
-                                                                         choices = list("None",
-                                                                           `Low Income` = low_income,
-                                                                           `Lower Middle Income`= lower_middle_income,
-                                                                           `Upper Middle Income` = upper_middle_income,
-                                                                           `High Income` = high_income
-                                                                         ),
-                                                                         selected = "Burkina Faso",
-                                                                         multiple = TRUE,
-                                                                         width="290px",
-                                                                         options = pickerOptions(`style` = "btn-primary",
-                                                                                                 maxOptions = 5, 
-                                                                                        maxOptionsText = "You can only select up to 5 countries", 
-                                                                                        noneSelectedText = "Select comparison countries")),
-                                                             
-                                                             style = "unite", icon = icon("plus"),
-                                                             status = "danger", width = "320px",
-                                                             tooltip = tooltipOptions(title = "Click to select country !"),
-                                                             animate = animateOptions(
-                                                               enter = animations$fading_entrances$fadeInLeftBig,
-                                                               exit = animations$fading_exits$fadeOutRightBig
-                                                             )))),
-                                                  fluidRow(
-                                                  withSpinner(plotOutput("pl2", height = 500), color = "#d5184e"))))
-                                           ))
+                                           column(width = 9,
+                                                 withSpinner(plotlyOutput("pl2", height = 600), color = "#d5184e"))))
+                                           )
                                  
                                        )
                                ))))
@@ -192,9 +190,10 @@ server <- function(input, output, session)({
   # Leaflet output
   ## Parts of the leaflet map that are static
   output$pl <- renderLeaflet({
-      leaflet(merged_mapping_df) %>%
-      addTiles() %>%
-      setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
+      map <- leaflet(merged_mapping_df,options = leafletOptions(zoomControl = FALSE)) %>%
+             addTiles() %>%
+              setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
+      #map$x$options = append(map$x$options, list("zoomControl" = FALSE))
 
     })
 
@@ -236,26 +235,29 @@ server <- function(input, output, session)({
         # enabled, create a new one.
           proxy %>% clearControls()
           pal <- colorBin(palette = "YlOrRd", domain = merged_mapping_df$value)
-          proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = "",
+          proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = ""
           )
 
       })
   })
 
 # Line graph
-output$pl2 <- renderPlot({
-  req(input$sdg, input$topic, input$indicator)
+output$pl2 <- renderPlotly({
+
   sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
   sdg_palette <- trimws(unlist(str_split(goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Palette) %>% pull(), 
                            pattern = ",")))
-  if(input$cn1 == input$cn2 | (any("None" %in% input$cn2) & length(unique(input$cn2))==1 )){
+
+  if(input$cn1 == input$cn2 | (any("None" %in% input$cn2)) | any(!input$cn2 %in% input$cn1) == FALSE){
+    req(input$sdg, input$topic)
     line_function(input$sdg, input$topic, input$indicator,input$cn1, sdg_col, input$indicator) 
   }else{
+    req(input$sdg, input$topic)
     line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2, sdg_palette, input$indicator)
   }
   
   
-}, height = 560)
+})
 
 
 })

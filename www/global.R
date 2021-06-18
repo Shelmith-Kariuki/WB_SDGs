@@ -10,6 +10,10 @@ library(shinycssloaders)
 library(shinyalert)
 library(sf)
 library(tidyverse)
+library(directlabels)
+library(plotly)
+
+options(scipen = 999)
 
 ## Read in the datasets
 merged_df <- read_rds("www/merged_df.rds")
@@ -67,13 +71,18 @@ map_theme <- theme(axis.line = element_blank(),
 ## Plot themes ----------------------------------------------------------
 plot_theme <- theme(axis.line = element_line(linetype = "solid"), 
                     axis.title = element_text(family = "serif", size = 18), 
-                    axis.text = element_text(family = "serif", size = 14, colour = "black"),
+                    axis.text = element_text(family = "serif", size = 10, colour = "black"),
                     panel.grid.major = element_blank(),
                     panel.grid.minor = element_blank(),
-                    plot.title = element_text(family = "serif", size = 20, face = "bold"), 
+                    plot.title = element_text(family = "serif", size = 18, face = "bold"), 
+                    plot.subtitle = element_text(family = "serif", size = 18), 
                     plot.background = element_rect("white", color = NA),
                     panel.background = element_rect("white", color = NA),
-                    legend.position = "right", 
-                    legend.direction = "vertical",
+                    legend.position = "none", 
+                    legend.direction = "horizontal",
+                    legend.title = element_blank(),
+                    legend.text = element_text(family = "serif", size = 14, colour = "black"),
+                    legend.key=element_blank(),
+                    legend.key.width = unit(4, "cm"),
                     plot.caption =  element_text(family = "serif", size = 14)) 
 
