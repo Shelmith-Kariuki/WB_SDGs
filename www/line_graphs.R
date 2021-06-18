@@ -13,7 +13,7 @@ my_df <- merged_df %>%
 line1 <- ggplot(data = my_df, aes(x = as.factor(Year), y = value, group = 1, 
                                   text = paste('Country: ', `Country Name`,"\n",
                                          'Year: ', Year,"\n",
-                                         'Value: ', value))) +
+                                         'Value: ', round(value, 2)))) +
           geom_point(size = 1, color = sdg_col) +
           geom_line(size = 1, color = sdg_col) +
           plot_theme + 
@@ -41,7 +41,7 @@ return(line1_plotly)
 }          
 
 ## Multiple countries
-line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2, sdg_palette, title ){
+line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2, sdg_col, sdg_palette, title ){
   
   my_df <- merged_df %>% 
     filter(!is.na(Goal)) %>%
@@ -53,14 +53,14 @@ line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2,
                                     group = `Country Name`, color = `Country Name`,
                                     text = paste('Country: ', `Country Name`,"\n",
                                                  'Year: ', Year,"\n",
-                                                 'Value: ', value))) +
+                                                 'Value: ', round(value, 2)))) +
     geom_point(size = 0.5) +
     geom_line(size = 0.5) +
     plot_theme +
-    scale_colour_discrete(guide = 'none') +
-    scale_x_discrete(expand=c(0, 1)) +
+    # scale_colour_discrete(guide = 'none') +
+    # scale_x_discrete(expand=c(0, 1)) +
     # geom_dl(aes(label = `Country Name`), method = list(dl.combine("last.points")), cex = 1.0) +
-    scale_color_manual(values = sdg_palette) + 
+    scale_color_manual(values = c(sdg_col, sdg_palette)) + 
     labs(title = title, x = "", y = "") +
     coord_cartesian(xlim = c(min(my_df$Year, na.rm = TRUE), max(my_df$Year, na.rm = TRUE)), expand = FALSE, clip = 'off')
   

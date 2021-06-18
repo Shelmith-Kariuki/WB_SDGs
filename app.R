@@ -3,6 +3,8 @@ source("www/custom_css.R")
 source("www/line_graphs.R")
 source("www/leaflet_function.R")
 
+
+
 ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                 useSweetAlert(), 
                 tagList(
@@ -16,6 +18,10 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                     includeMarkdown("www/home_page.md")))
                                ),
                       tabPanel(span(h3(tags$b("Goals")),style = "color:#002f54;"),
+                               tags$style(type="text/css",
+                                          ".shiny-output-error { visibility: hidden; }",
+                                          ".shiny-output-error:before { visibility: hidden; }"
+                               ),
                               fluidRow(
                                  column(width = 3,
                                         pickerInput(
@@ -58,47 +64,11 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                         exit = animations$fading_exits$fadeOutRightBig
                                                       ))),
                                              column(width = 2, offset = 7,
-                                                    dropdown(
-                                                               tags$h5(""),
-                                                               pickerInput(inputId = 'cn1',
-                                                                           label = 'Select Country',
-                                                                           choices = list(
-                                                                             `Low Income` = low_income,
-                                                                             `Lower Middle Income`= lower_middle_income,
-                                                                             `Upper Middle Income` = upper_middle_income,
-                                                                             `High Income` = high_income
-                                                                           ),
-                                                                           selected = "Kenya",
-                                                                           options = list(`style` = "btn-primary"),
-                                                                           width="290px"),
-                                                               
-                                                               pickerInput(inputId = 'cn2',
-                                                                           label = 'Add Country',
-                                                                           choices = list("None",
-                                                                                          `Low Income` = low_income,
-                                                                                          `Lower Middle Income`= lower_middle_income,
-                                                                                          `Upper Middle Income` = upper_middle_income,
-                                                                                          `High Income` = high_income
-                                                                           ),
-                                                                           selected = "Uganda",
-                                                                           multiple = TRUE,
-                                                                           width="290px",
-                                                                           options = pickerOptions(`style` = "btn-primary",
-                                                                                                   maxOptions = 5, 
-                                                                                                   maxOptionsText = "You can only select up to 5 countries", 
-                                                                                                   noneSelectedText = "Select comparison countries")),
-                                                               
-                                                               style = "unite", icon = icon("plus"),
-                                                               status = "danger", width = "320px",
-                                                               tooltip = tooltipOptions(title = "Click to select country !"),
-                                                               animate = animateOptions(
-                                                                 enter = animations$fading_entrances$fadeInLeftBig,
-                                                                 exit = animations$fading_exits$fadeOutRightBig
-                                                               )))),
+                                                    uiOutput("country_dropdown"))),
                                            #),
                                            br(),
                                            fluidRow(style = "margin-left: 3px;",
-                                             column(width = 3, 
+                                             column(width = 5, 
                                                     fluidRow(
                                                       #uiOutput("slider_color"),
                                                       tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #052D56}")),
@@ -106,7 +76,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                     fluidRow(
                                                       withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
-                                           column(width = 9,
+                                           column(width = 7,
                                                  withSpinner(plotlyOutput("pl2", height = 600), color = "#d5184e"))))
                                            )
                                  
@@ -241,6 +211,48 @@ server <- function(input, output, session)({
       })
   })
 
+# Country dropdown
+
+# Indicator reactive
+    indicator_reactive <- reactive({
+      merged_df %>% 
+        filter(Goal == input$sdg & Topic == input$topic & `Indicator Name` == input$indicator)
+    })
+    
+output$country_dropdown <- renderUI({
+  # req(input$sdg)
+  countries <- indicator_reactive() %>% distinct(`Country Name`) %>% pull
+  dropdown(
+    tags$h5(""),
+    pickerInput(inputId = 'cn1',
+                label = 'Select Country',
+                choices = countries,
+                selected = sample(countries, 1),
+                options = pickerOptions(liveSearch	= TRUE,
+                                        `style` = "btn-primary"),
+                width="290px"),
+    
+    pickerInput(inputId = 'cn2',
+                label = 'Add Country',
+                choices = c("None", countries),
+                selected = "None",
+                multiple = TRUE,
+                width="290px",
+                options = pickerOptions(`style` = "btn-primary",
+                                        liveSearch	= TRUE,
+                                        actionsBox = TRUE,
+                                        maxOptions = 5, 
+                                        maxOptionsText = "You can only select up to 5 countries", 
+                                        noneSelectedText = "Select comparison countries")),
+    
+    style = "unite", icon = icon("plus"),
+    status = "danger", width = "320px",
+    tooltip = tooltipOptions(title = "Click to select country !"),
+    animate = animateOptions(
+      enter = animations$fading_entrances$fadeInLeftBig,
+      exit = animations$fading_exits$fadeOutRightBig
+    ))
+})
 # Line graph
 output$pl2 <- renderPlotly({
 
@@ -253,7 +265,7 @@ output$pl2 <- renderPlotly({
     line_function(input$sdg, input$topic, input$indicator,input$cn1, sdg_col, input$indicator) 
   }else{
     req(input$sdg, input$topic)
-    line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2, sdg_palette, input$indicator)
+    line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2,sdg_col, sdg_palette, input$indicator)
   }
   
   
