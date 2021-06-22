@@ -1,0 +1,14 @@
+name: WB_SDGs
+title: WB_SDGs
+username:
+account: shelmithkariuki
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4303758
+bundleId: 4743250
+url: https://shelmithkariuki.shinyapps.io/WB_SDGs/
+when: 1624366832.02163
+lastSyncTime: 1624366832.02168
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .secrets/6c91f3dd95c2217959d38f926b96d7bb_kariukishelmith@gmail.com|archive/maps.R|README.md|Rplots.pdf

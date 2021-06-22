@@ -3,8 +3,12 @@ source("www/custom_css.R")
 source("www/line_graphs.R")
 source("www/leaflet_function.R")
 
-
-
+# gs4_auth(cache = ".secrets")
+# gs4_auth(cache = ".secrets", email = TRUE, use_oob = TRUE)
+# sheets_auth(
+#   cache = ".secrets",
+#   email = "kariukishelmith@gmail.com"
+# )
 ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                 useSweetAlert(), 
                 tagList(
@@ -72,12 +76,20 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                     fluidRow(
                                                       #uiOutput("slider_color"),
                                                       tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #052D56}")),
-                                                      uiOutput("year_slider")),
+                                                      setSliderColor("#d5184e", 1),
+                                                        sliderTextInput(
+                                                          inputId = "year_slider",
+                                                          label = "Select Year", 
+                                                          grid = TRUE,
+                                                          force_edges = TRUE,
+                                                          choices = years,
+                                                          width = "190%"
+                                                        )),
                                                     fluidRow(
                                                       withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
                                            column(width = 7,
-                                                 withSpinner(plotlyOutput("pl2", height = 600), color = "#d5184e"))))
+                                                 withSpinner(plotlyOutput("pl2", height = 630), color = "#d5184e"))))
                                            )
                                  
                                        )
@@ -141,75 +153,74 @@ server <- function(input, output, session)({
       filter(`Indicator Name` == input$indicator)
   })
   
-  output$year_slider <- renderUI({
-    req(input$indicator)
-    sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
-    years <- as.character(sort(year_reactive() %>% distinct(Year) %>% pull()))
-    setSliderColor(sdg_col, 1)
-    sliderTextInput(
-      inputId = "what",
-      label = "Select Year", 
-      grid = TRUE,
-      force_edges = TRUE,
-      choices = years, 
-      width = "190%"
-    ) 
-  })
+  # output$year_slider <- renderUI({
+  #   # req(input$indicator)
+  #   # sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
+  #   # years <- as.character(sort(year_reactive() %>% distinct(Year) %>% pull()))
+  #   sdg_col <- "maroon"
+  #   years <- unique(merged_mapping_df$Year)
+  #   setSliderColor(sdg_col, 1)
+  #   sliderTextInput(
+  #     inputId = "year",
+  #     label = "Select Year", 
+  #     grid = TRUE,
+  #     force_edges = TRUE,
+  #     choices = years, 
+  #     width = "190%"
+  #   ) 
+  # })
 
   
   # Leaflet output
   ## Parts of the leaflet map that are static
   output$pl <- renderLeaflet({
-      map <- leaflet(merged_mapping_df,options = leafletOptions(zoomControl = FALSE)) %>%
-             addTiles() %>%
-              setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
-      #map$x$options = append(map$x$options, list("zoomControl" = FALSE))
-
-    })
-
-    ## observers: leaflet map should change per year selected
-    selectedyear <- reactive({
-      df <- merged_mapping_df %>%
-        filter(Year == 2004)
-    })
-
-
-    ## Parts of the leaflet map that are dynamic (depends on the year selected)
-    observe({
-      pal <- colorBin(palette = "YlOrRd", domain = selectedyear()$value)
-
-      labels <- sprintf(
-        "<strong>%s</strong><br/><strong>%s</strong>%g<br/><strong>%s</strong>%g",
-        selectedyear()$ADM0_NAME,"Year: ",selectedyear()$Year,"Value: ",
-        selectedyear()$value) %>%
-        lapply(htmltools::HTML)
-
-      leafletProxy('pl') %>%
-        addPolygons(data = selectedyear() , color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(selectedyear()$value),
-                    highlight = highlightOptions(
-                      weight = 4,
-                      color = "#397E4A",
-                      dashArray = "",
-                      bringToFront = TRUE),
-                    label = labels,
-                    labelOptions = labelOptions(
-                      style = list("font-weight" = "normal", padding = "3px 8px"),
-                      textsize = "15px",
-                      direction = "auto"))
-
-      ## Use a separate observer to recreate the legend as needed.
-      observe({
-        proxy <- leafletProxy("pl", data = merged_mapping_df)
-
-        # Remove any existing legend, and only if the legend is
-        # enabled, create a new one.
-          proxy %>% clearControls()
-          pal <- colorBin(palette = "YlOrRd", domain = merged_mapping_df$value)
-          proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = ""
-          )
-
-      })
+    leaflet(merged_mapping_df) %>% 
+      addTiles() %>% 
+      setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
+    
   })
+  # observers
+  # selected country
+  selectedyear <- reactive({
+    merged_mapping_df %>% 
+      filter(Year == as.numeric(input$year_slider))
+  })
+  observe({
+    pal <- colorBin(palette = "YlOrRd", domain = selectedyear()$value)
+    labels <- sprintf(
+      "<strong>%s</strong><br/><strong>%s</strong>%g<br/><strong>%s</strong>%g",
+      selectedyear()$ADM0_NAME,"Year: ",selectedyear()$Year,"Value: ",
+      selectedyear()$value) %>%
+      lapply(htmltools::HTML)
+    
+    leafletProxy('pl') %>%
+      addPolygons(data = selectedyear() , color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(selectedyear()$value),
+                  highlight = highlightOptions(
+                    weight = 4,
+                    color = "#397E4A",
+                    dashArray = "",
+                    bringToFront = TRUE),
+                  label = labels,
+                  labelOptions = labelOptions(
+                    style = list("font-weight" = "normal", padding = "3px 8px"),
+                    textsize = "15px",
+                    direction = "auto")) 
+  })#%>%
+    #addLegend(position = c("bottomright"),pal = pal, values = ~selectedyear()$value, title = "")
+    # Use a separate observer to recreate the legend as needed.
+    observe({
+      proxy <- leafletProxy("pl", data = merged_mapping_df)
+      
+      # Remove any existing legend, and only if the legend is
+      # enabled, create a new one.
+      proxy %>% clearControls()
+      pal <- colorBin(palette = "YlOrRd", domain = merged_mapping_df$value)
+      proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = ""
+      )
+      
+    
+  })
+  
 
 # Country dropdown
 

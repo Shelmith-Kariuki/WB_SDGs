@@ -4,18 +4,29 @@ library(sf)
 library(googlesheets4)
 library(plotly)
 library(leaflet)
+library(openxlsx)
 
 ## Read in the datasets
 options(scipen = 999)
-wb_sheet <- "https://docs.google.com/spreadsheets/d/1Mv73sv4XwuT_rgn8LP2M_367CtX_L5I6A6ZvmE5iZeY/edit#gid=618760682"
-main_data <- read_sheet(wb_sheet,sheet = "Data")
-country_data <- read_sheet(wb_sheet,sheet = "Country")
-sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
-indicators_interest <- read_sheet(wb_sheet,sheet = "Indicators_Interest")
-series_df <- read_sheet(wb_sheet,sheet = "Series") 
 sdgs_all <- read_csv("www/SDGS - Sheet2 (3).csv")
-goal_target_cols <- read_sheet(wb_sheet,sheet = "goal_target")
-series_source <- read_sheet(wb_sheet,sheet = "Country-Series")
+
+# wb_sheet <- "https://docs.google.com/spreadsheets/d/1Mv73sv4XwuT_rgn8LP2M_367CtX_L5I6A6ZvmE5iZeY/edit#gid=618760682"
+# main_data <- read_sheet(wb_sheet,sheet = "Data")
+# country_data <- read_sheet(wb_sheet,sheet = "Country")
+# sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
+# indicators_interest <- read_sheet(wb_sheet,sheet = "Indicators_Interest")
+# series_df <- read_sheet(wb_sheet,sheet = "Series") 
+# goal_target_cols <- read_sheet(wb_sheet,sheet = "goal_target")
+# series_source <- read_sheet(wb_sheet,sheet = "Country-Series")
+
+
+main_data <- read.xlsx("www/WB_SDG.xlsx", sheet = "Data")
+country_data <- read.xlsx("www/WB_SDG.xlsx", sheet = "Country")
+sdg_file_codebook <- read.xlsx("www/WB_SDG.xlsx", sheet = "codebook")
+indicators_interest <- read.xlsx("www/WB_SDG.xlsx", sheet = "Indicators_Interest")
+series_df <- read.xlsx("www/WB_SDG.xlsx", sheet = "Series") 
+goal_target_cols <- read.xlsx("www/WB_SDG.xlsx", sheet = "goal_target")
+series_source <- read.xlsx("www/WB_SDG.xlsx", sheet = "Country-Series")
 
 ## Manipulate the datasets and merge them
 country_data <- country_data %>% 

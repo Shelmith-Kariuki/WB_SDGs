@@ -12,14 +12,21 @@ library(sf)
 library(tidyverse)
 library(directlabels)
 library(plotly)
+library(leaflet)
+library(googlesheets4)
+library(googledrive)
+library(openxlsx)
 
 options(scipen = 999)
 
 ## Read in the datasets
 merged_df <- read_rds("www/merged_df.rds")
 wb_sheet <- "https://docs.google.com/spreadsheets/d/1Mv73sv4XwuT_rgn8LP2M_367CtX_L5I6A6ZvmE5iZeY/edit#gid=618760682"
-sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
-goal_target_cols <- read_sheet(wb_sheet,sheet = "goal_target")
+# sdg_file_codebook <- read_sheet(wb_sheet,sheet = "codebook")
+# goal_target_cols <- read_sheet(wb_sheet,sheet = "goal_target")
+
+sdg_file_codebook <- read.xlsx("www/WB_SDG.xlsx", sheet = "codebook")
+goal_target_cols  <- read.xlsx("www/WB_SDG.xlsx", sheet = "goal_target")
 
 ## Inputs lists
 goals_list <- unique(as.character(sort(merged_df$Goal)))
@@ -50,7 +57,7 @@ lower_middle_income <- merged_df %>% filter(`Income Group` == "Lower middle inco
 upper_middle_income <- merged_df %>% filter(`Income Group` == "Upper middle income") %>% distinct(`Country Name`) %>% pull()
 high_income <- merged_df %>% filter(`Income Group` == "High income") %>% distinct(`Country Name`) %>% pull()
 
-years <- as.character(c(1990:2020))
+# years <- as.character(c(1990:2020))
 
 ## Map theme ----------------------------------------------------------
 map_theme <- theme(axis.line = element_blank(), 

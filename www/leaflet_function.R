@@ -1,6 +1,7 @@
 library(tidyverse)
 library(sf)
 library(leaflet)
+library(leaflet.extras)
 library(rmapshaper)
 
 ## Read in the data
@@ -37,3 +38,5 @@ my_df <- my_df %>%
 ## Merge the data with the shapefiles
 merged_mapping_df <- africa_shp %>% 
   left_join(.,my_df,  by = c("ISO3" = "Country Code")) 
+
+years <- as.character(unique(merged_mapping_df$Year))
