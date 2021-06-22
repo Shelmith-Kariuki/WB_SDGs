@@ -6,33 +6,51 @@ img <- grid::rasterGrob("www/worldbank_logo.png", interpolate = TRUE)
 line_function <- function(goal, topic, indicatorname,countryname,sdg_col, title ){
   
 my_df <- merged_df %>% 
-          filter(!is.na(Goal)) %>%
+          mutate(across(everything(), ~trimws(.))) %>% 
+          mutate(value = as.numeric(value)) %>% 
           filter(Goal == goal & Topic == topic & `Indicator Name` == indicatorname &
                    `Country Name` == countryname) 
 
+if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
+  tooltip_text <-  paste('Country: ', my_df$`Country Name`,"\n",
+                         'Year: ', my_df$Year,"\n",
+                         'Value: ', round(my_df$value, 1), "%")
+}else{
+  tooltip_text <-  paste('Country: ', my_df$`Country Name`,"\n",
+                         'Year: ', my_df$Year,"\n",
+                         'Value: ', round(my_df$value, 2))
+}
+
 line1 <- ggplot(data = my_df, aes(x = as.factor(Year), y = value, group = 1, 
-                                  text = paste('Country: ', `Country Name`,"\n",
-                                         'Year: ', Year,"\n",
-                                         'Value: ', round(value, 2)))) +
-          geom_point(size = 1, color = sdg_col) +
-          geom_line(size = 1, color = sdg_col) +
+                                  text = tooltip_text)) +
+          geom_point(size = 0.5, color = sdg_col) +
+          geom_line(size = 0.5, color = sdg_col) +
           plot_theme + 
           labs(title = title, subtitle = paste0("\n(",countryname , ")"), x = "", y = "", caption = "") +
           theme(legend.position = "none") +
-          coord_cartesian(xlim = c(min(my_df$Year, na.rm = TRUE), max(my_df$Year, na.rm = TRUE)), expand = FALSE, clip = 'off') +
-          annotation_custom(img, ymin = max(my_df$value, na.rm = TRUE)-2, ymax = max(my_df$value, na.rm = TRUE), 
-                            xmin = max(my_df$Year, na.rm = TRUE)-2, xmax = max(my_df$Year, na.rm = TRUE))
+          coord_cartesian(expand = FALSE, clip = 'off')
 
 
-if(title %in% grep("%", title, value = TRUE, ignore.case = TRUE)){
-  line1 <- line1 + scale_y_continuous(labels = scales::percent)
-}else{
+if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
+  
+  if(max(my_df$value, na.rm = TRUE) <= 90){
+    line1b <- line1 + scale_y_continuous(limits = c(0, max(my_df$value, na.rm = TRUE) + 10), 
+                                         breaks = seq(0, max(my_df$value, na.rm = TRUE) + 10, by = 5),
+                                         labels = function(x) paste0(x, "%"))
+  }else
+    line1b <- line1 + scale_y_continuous(limits = c(0, max(my_df$value, na.rm = TRUE)), 
+                                         breaks = seq(0, max(my_df$value, na.rm = TRUE), by = 5),
+                                         labels = function(x) paste0(x, "%"))
+  }else{
   if(max(my_df$value, na.rm = TRUE) > 10000){
-    line1 <- line1 + scale_y_continuous(labels = scales::comma) 
+    line1b <- line1 + scale_y_continuous(labels = scales::comma) 
+  }else{
+    line1b <- line1
   }
 }
 
-line1_plotly <- ggplotly(line1, dynamicTicks = TRUE, tooltip = c("text")) %>%
+
+line1_plotly <- ggplotly(line1b, tooltip = c("text")) %>%
                   layout(hovermode = "x") %>% 
                   config(displayModeBar = F)
   
@@ -44,37 +62,55 @@ return(line1_plotly)
 line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2, sdg_col, sdg_palette, title ){
   
   my_df <- merged_df %>% 
-    filter(!is.na(Goal)) %>%
+    mutate(across(everything(), ~trimws(.))) %>% 
+    mutate(value = as.numeric(value)) %>% 
     filter(Goal == goal & Topic == topic & `Indicator Name` == indicatorname &
              (`Country Name` == countryname1|`Country Name` %in% countryname2)) %>% 
     mutate(`Country Name` = fct_relevel(`Country Name`, countryname1))
   
+  if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
+    tooltip_text <-  paste('Country: ', my_df$`Country Name`,"\n",
+                           'Year: ', my_df$Year,"\n",
+                           'Value: ', round(my_df$value, 1), "%")
+  }else{
+    tooltip_text <-  paste('Country: ', my_df$`Country Name`,"\n",
+                           'Year: ', my_df$Year,"\n",
+                           'Value: ', round(my_df$value, 2))
+  }
+  
   line2 <- ggplot(data = my_df, aes(x = as.factor(Year), y = value, 
                                     group = `Country Name`, color = `Country Name`,
-                                    text = paste('Country: ', `Country Name`,"\n",
-                                                 'Year: ', Year,"\n",
-                                                 'Value: ', round(value, 2)))) +
+                                    text = tooltip_text)) +
     geom_point(size = 0.5) +
     geom_line(size = 0.5) +
     plot_theme +
-    # scale_colour_discrete(guide = 'none') +
-    # scale_x_discrete(expand=c(0, 1)) +
-    # geom_dl(aes(label = `Country Name`), method = list(dl.combine("last.points")), cex = 1.0) +
     scale_color_manual(values = c(sdg_col, sdg_palette)) + 
     labs(title = title, x = "", y = "") +
-    coord_cartesian(xlim = c(min(my_df$Year, na.rm = TRUE), max(my_df$Year, na.rm = TRUE)), expand = FALSE, clip = 'off')
+    coord_cartesian(expand = FALSE, clip = 'off')
   
+    #scale_y_continuous(limits = c(0,max(my_df$value, na.rm = TRUE)), expand = FALSE)
+    # coord_cartesian(xlim = c(min(my_df$Year, na.rm = TRUE), max(my_df$Year, na.rm = TRUE)), expand = FALSE, clip = 'off')
   
-  if(title %in% grep("%", title, value = TRUE, ignore.case = TRUE)){
-    line2 <- line2 + scale_y_continuous(labels = scales::percent)
-  }else{
-    if(max(my_df$value, na.rm = TRUE) > 10000){
-      line2 <- line2 + scale_y_continuous(labels = scales::comma) 
-    }
-  }
-
+ 
+ if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
+   
+   if(max(my_df$value, na.rm = TRUE) <= 90){
+     line2b <- line2 + scale_y_continuous(limits = c(0, max(my_df$value, na.rm = TRUE) + 10), 
+                                          breaks = seq(0, max(my_df$value, na.rm = TRUE) + 10, by = 5),
+                                          labels = function(x) paste0(x, "%"))
+   }else
+     line2b <- line2 + scale_y_continuous(limits = c(0, max(my_df$value, na.rm = TRUE)), 
+                                            breaks = seq(0, max(my_df$value, na.rm = TRUE), by = 5),
+                                            labels = function(x) paste0(x, "%"))
+   }else{
+     if(max(my_df$value, na.rm = TRUE) > 10000){
+       line2b <- line2 + scale_y_continuous(labels = scales::comma) 
+     }else{
+       line2b <- line2
+     }
+   }
   
-  line2_plotly <- ggplotly(line2, dynamicTicks = TRUE, tooltip = c("text")) %>%
+  line2_plotly <- ggplotly(line2b, tooltip = c("text")) %>%
                     layout(hovermode = "x") %>% 
                       config(displayModeBar = F)
   

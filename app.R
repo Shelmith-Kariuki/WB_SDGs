@@ -34,7 +34,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                               br(), br(),
                               fluidRow(style = "margin-left: 3px;",
                                 tabsetPanel(type = "pills", 
-                                  tabPanel(span("Targets",style="color:black; font-style: bold; font-size:16px"), 
+                                  tabPanel(span("Targets",style="color:black; font-style: bold; font-size:16px;"), 
                                            dataTableOutput("targets")),
                                   tabPanel(span("Output", style="color:black; font-style: bold; font-size:16px"), 
                                            fluidRow(style = "margin-left: 3px;",
@@ -227,7 +227,7 @@ output$country_dropdown <- renderUI({
     pickerInput(inputId = 'cn1',
                 label = 'Select Country',
                 choices = countries,
-                selected = sample(countries, 1),
+                selected = countries[1],
                 options = pickerOptions(liveSearch	= TRUE,
                                         `style` = "btn-primary"),
                 width="290px"),
@@ -260,11 +260,11 @@ output$pl2 <- renderPlotly({
   sdg_palette <- trimws(unlist(str_split(goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Palette) %>% pull(), 
                            pattern = ",")))
 
-  if(input$cn1 == input$cn2 | (any("None" %in% input$cn2)) | any(!input$cn2 %in% input$cn1) == FALSE){
-    req(input$sdg, input$topic)
+  if(input$cn1 %in% input$cn2 |"None" %in% input$cn2){
+    # req(input$sdg, input$topic)
     line_function(input$sdg, input$topic, input$indicator,input$cn1, sdg_col, input$indicator) 
   }else{
-    req(input$sdg, input$topic)
+    # req(input$sdg, input$topic)
     line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2,sdg_col, sdg_palette, input$indicator)
   }
   
