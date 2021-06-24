@@ -74,21 +74,14 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                            fluidRow(style = "margin-left: 3px;",
                                              column(width = 5, 
                                                     fluidRow(
-                                                      #uiOutput("slider_color"),
-                                                      tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #052D56}")),
-                                                      setSliderColor("#d5184e", 1),
-                                                        sliderTextInput(
-                                                          inputId = "year_slider",
-                                                          label = "Select Year", 
-                                                          grid = TRUE,
-                                                          force_edges = TRUE,
-                                                          choices = years,
-                                                          width = "190%"
-                                                        )),
+                                                      uiOutput("slider_col"),
+                                                     # tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #d5184e}")),
+                                                      uiOutput("year_slider")),
                                                     fluidRow(
                                                       withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
                                            column(width = 7,
+                                                  br(),br(),br(),
                                                  withSpinner(plotlyOutput("pl2", height = 630), color = "#d5184e"))))
                                            )
                                  
@@ -124,111 +117,144 @@ server <- function(input, output, session)({
               options = list(dom = 't', fixedHeader = TRUE))
   })
   
-  # The topics shown should be for each goal
-  observeEvent(sdg_reactive(), {
-    choices <- sdg_reactive() %>% distinct(Topic) %>% pull()
-    updatePickerInput(session, "topic", choices = choices)
+  ## Topics depend on the goal selected
+  observeEvent(input$sdg,{
+    choices <- merged_df %>% filter(Goal == input$sdg) %>% 
+      mutate(Topic = trimws(Topic)) %>% 
+      distinct(Topic) %>% 
+      pull()
+    # browser()
+    updatePickerInput(session, "topic", choices = choices, selected = choices[1])
   })
   
-  # The indicators shown should be for each topic
-  topic_reactive <- reactive({
-    merged_df %>% 
-      filter(Goal == input$sdg & Topic == input$topic)
+  ## Indicators depend on the sdg and topic selected
+  observeEvent(paste(input$sdg,input$topic), {
+    choices <- merged_df %>%
+      filter(Goal %in% input$sdg, Topic %in% input$topic) %>% 
+      mutate(`Indicator Name` = trimws(`Indicator Name`)) %>%  
+      distinct(`Indicator Name`) %>% 
+      pull()
+    updatePickerInput(session, "indicator", choices = choices, selected = choices[1])
   })
   
-  observeEvent(topic_reactive(), {
-    choices <- topic_reactive() %>% distinct(`Indicator Name`) %>% pull()
-    updatePickerInput(session, "indicator", choices = choices)
-  })
-  
-  # Slider color depends on the color theme of the SDG
-  # output$slider_color <- renderUI({
-  #   sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
-  #   setSliderColor(sdg_col, 1)
-  # })
+  ## The years indicated on the slider depend on the goal, topic and indicator selected.
 
-  #Update years slicer
+  col <- reactive({
+    tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #d5184e}"))
+  })
+  
+  output$slider_col <- renderUI({
+    req(input$sdg)
+    col 
+  })
+  
+
+  output$year_slider <- renderUI({
+    req(input$sdg)
+    req(input$indicator!= "")
+    df_years <- merged_df %>% 
+      filter(`Indicator Name` == input$indicator) %>% 
+      pull(Year) %>% 
+      unique() %>% 
+      sort()
+    
+    tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #d5184e}"))
+      sliderTextInput(
+      inputId = "year",
+      label = "Select Year",
+      grid = TRUE,
+      force_edges = TRUE,
+      choices = df_years,
+      selected = df_years[1],
+      width = "190%"
+    )
+  })
+  
+  ## Reactive elements that will be used on the table and map
   year_reactive <- reactive({
-    df <- merged_df %>% 
-      filter(`Indicator Name` == input$indicator)
+    req(input$sdg)
+    req(input$topic)
+    req(input$indicator)
+    req(input$year)
+    merged_mapping_df %>% 
+      dplyr::filter(as.character(Goal) %in% input$sdg, 
+                    Topic %in% input$topic,
+                    `Indicator Name` %in% input$indicator,
+                    Year %in% input$year) %>% 
+      select(Goal, Topic, `Indicator Name`, Year, ADM0_NAME, value) %>% 
+      arrange(Goal, Topic, `Indicator Name`, Year, ADM0_NAME) 
   })
-  
-  # output$year_slider <- renderUI({
-  #   # req(input$indicator)
-  #   # sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
-  #   # years <- as.character(sort(year_reactive() %>% distinct(Year) %>% pull()))
-  #   sdg_col <- "maroon"
-  #   years <- unique(merged_mapping_df$Year)
-  #   setSliderColor(sdg_col, 1)
-  #   sliderTextInput(
-  #     inputId = "year",
-  #     label = "Select Year", 
-  #     grid = TRUE,
-  #     force_edges = TRUE,
-  #     choices = years, 
-  #     width = "190%"
-  #   ) 
-  # })
 
   
-  # Leaflet output
-  ## Parts of the leaflet map that are static
-  output$pl <- renderLeaflet({
-    leaflet(merged_mapping_df) %>% 
-      addTiles() %>% 
-      setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
-    
+  # Indicator reactive
+  indicator_reactive <- reactive({
+    req(input$sdg)
+    req(input$topic)
+    req(input$indicator)
+    merged_df %>% 
+      filter(Goal %in% input$sdg & Topic %in% input$topic & `Indicator Name` %in% input$indicator)
   })
-  # observers
-  # selected country
-  selectedyear <- reactive({
-    merged_mapping_df %>% 
-      filter(Year == as.numeric(input$year_slider))
-  })
-  observe({
-    pal <- colorBin(palette = "YlOrRd", domain = selectedyear()$value)
-    labels <- sprintf(
-      "<strong>%s</strong><br/><strong>%s</strong>%g<br/><strong>%s</strong>%g",
-      selectedyear()$ADM0_NAME,"Year: ",selectedyear()$Year,"Value: ",
-      selectedyear()$value) %>%
-      lapply(htmltools::HTML)
-    
-    leafletProxy('pl') %>%
-      addPolygons(data = selectedyear() , color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(selectedyear()$value),
-                  highlight = highlightOptions(
-                    weight = 4,
-                    color = "#397E4A",
-                    dashArray = "",
-                    bringToFront = TRUE),
-                  label = labels,
-                  labelOptions = labelOptions(
-                    style = list("font-weight" = "normal", padding = "3px 8px"),
-                    textsize = "15px",
-                    direction = "auto")) 
-  })#%>%
-    #addLegend(position = c("bottomright"),pal = pal, values = ~selectedyear()$value, title = "")
-    # Use a separate observer to recreate the legend as needed.
-    observe({
-      proxy <- leafletProxy("pl", data = merged_mapping_df)
+  
+    ## Leaflet map
+    # Parts of the leaflet map that are static
+    output$pl <- renderLeaflet({
+      req(input$sdg,input$topic, input$indicator, input$year)
+      leaflet(data = merged_mapping_df) %>%
+        addTiles() %>%
+        setView(lng = 20.48554, lat = 6.57549,  zoom = 3)
+    })
+
+    observeEvent(year_reactive(),{
+      req(input$year)
+      req(nrow(year_reactive())>0)
+      ## Define color palette
+      pal <- colorBin(palette = "YlOrRd", domain = indicator_reactive()$value)
+      ## Define the labels
+      
+      if(unique(year_reactive()$`Indicator Name`) %in% grep("%", unique(year_reactive()$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
+        labels <- sprintf(
+          "<strong>%s</strong><br/><strong>%s</strong>%s<br/><strong>%s</strong>%s",
+          year_reactive()$ADM0_NAME,"Year: ",year_reactive()$Year,"Value: ",
+          paste0(round(year_reactive()$value, 1), "%")) %>%
+          lapply(htmltools::HTML)
+      }else{
+        labels <- sprintf(
+          "<strong>%s</strong><br/><strong>%s</strong>%s<br/><strong>%s</strong>%g",
+          year_reactive()$ADM0_NAME,"Year: ",year_reactive()$Year,"Value: ",
+          year_reactive()$value) %>%
+          lapply(htmltools::HTML)
+      }
+      
+      ## Generate the dynamic part of the map
+      leafletProxy('pl') %>%
+        addPolygons(data = year_reactive(), color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(year_reactive()$value),
+                    highlight = highlightOptions(
+                      weight = 4,
+                      color = "#397E4A",
+                      dashArray = "",
+                      bringToFront = TRUE),
+                    label = labels,
+                    labelOptions = labelOptions(
+                      style = list("font-weight" = "normal", padding = "3px 8px"),
+                      textsize = "15px",
+                      direction = "auto")) #%>%
+        #addLegend(position = "bottomright",pal = pal, values = ~year_reactive()$value, title = "")
+      
+      observeEvent(year_reactive(),{
+      proxy <- leafletProxy("pl", data = indicator_reactive())
       
       # Remove any existing legend, and only if the legend is
       # enabled, create a new one.
       proxy %>% clearControls()
-      pal <- colorBin(palette = "YlOrRd", domain = merged_mapping_df$value)
+      pal <- colorBin(palette = "YlOrRd", domain = indicator_reactive()$value)
       proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = ""
       )
-      
-    
-  })
-  
+    })
+    })
+
 
 # Country dropdown
 
-# Indicator reactive
-    indicator_reactive <- reactive({
-      merged_df %>% 
-        filter(Goal == input$sdg & Topic == input$topic & `Indicator Name` == input$indicator)
-    })
     
 output$country_dropdown <- renderUI({
   # req(input$sdg)
@@ -267,6 +293,9 @@ output$country_dropdown <- renderUI({
 # Line graph
 output$pl2 <- renderPlotly({
 
+  req(input$sdg)
+  req(input$indicator!= "")
+  
   sdg_col <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
   sdg_palette <- trimws(unlist(str_split(goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Palette) %>% pull(), 
                            pattern = ",")))

@@ -9,12 +9,12 @@ merged_df <- read_rds("www/merged_df.rds")
 
 ## Subset the dataset
 # 
-my_df <- merged_df %>%
-            filter(Goal == "SDG 3 : Good Health and Well-being" &
-                  Topic == "Health: Mortality" &
-                  `Indicator Name` == "Mortality rate, under-5 (per 1,000 live births)")
+# my_df <- merged_df %>%
+#             filter(Goal == "SDG 3 : Good Health and Well-being" &
+#                   Topic == "Health: Mortality" &
+#                   `Indicator Name` == "Mortality rate, under-5 (per 1,000 live births)")
 
-# my_df <- merged_df
+my_df <- merged_df
 
 ## Read in the shapefiles
 africa_shp <- read_sf("www/afr_g2014_2013_0/afr_g2014_2013_0.shp")
@@ -39,4 +39,4 @@ my_df <- my_df %>%
 merged_mapping_df <- africa_shp %>% 
   left_join(.,my_df,  by = c("ISO3" = "Country Code")) 
 
-years <- as.character(unique(merged_mapping_df$Year))
+# years <- as.character(unique(merged_mapping_df$Year))
