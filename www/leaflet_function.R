@@ -6,6 +6,8 @@ library(rmapshaper)
 
 ## Read in the data
 merged_df <- read_rds("www/merged_df.rds")
+merged_df <- merged_df %>% 
+  mutate(`Country Name` = ifelse(`Country Name` == "Gambia, The", "Gambia", `Country Name`))
 
 ## Subset the dataset
 # 

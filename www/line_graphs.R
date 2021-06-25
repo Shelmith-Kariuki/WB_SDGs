@@ -11,6 +11,7 @@ my_df <- merged_df %>%
           filter(Goal == goal & Topic == topic & `Indicator Name` == indicatorname &
                    `Country Name` == countryname) 
 
+if(nrow(my_df) >0){
 if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
   tooltip_text <-  paste('Country: ', my_df$`Country Name`,"\n",
                          'Year: ', my_df$Year,"\n",
@@ -21,9 +22,10 @@ if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`),
                          'Value: ', round(my_df$value, 2))
 }
 
+
 line1 <- ggplot(data = my_df, aes(x = as.factor(Year), y = value, group = 1, 
                                   text = tooltip_text)) +
-          geom_point(size = 0.5, color = sdg_col) +
+          #geom_point(size = 0.5, color = sdg_col) +
           geom_line(size = 0.5, color = sdg_col) +
           plot_theme + 
           labs(title = title, subtitle = paste0("\n(",countryname , ")"), x = "", y = "", caption = "") +
@@ -56,7 +58,7 @@ line1_plotly <- ggplotly(line1b, tooltip = c("text")) %>%
   
 
 return(line1_plotly)
-}          
+}}         
 
 ## Multiple countries
 line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2, sdg_col, sdg_palette, title ){
@@ -68,6 +70,7 @@ line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2,
              (`Country Name` == countryname1|`Country Name` %in% countryname2)) %>% 
     mutate(`Country Name` = fct_relevel(`Country Name`, countryname1))
   
+  if(nrow(my_df) >0){
   if(unique(my_df$`Indicator Name`) %in% grep("%", unique(my_df$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
     tooltip_text <-  paste('Country: ', my_df$`Country Name`,"\n",
                            'Year: ', my_df$Year,"\n",
@@ -77,11 +80,11 @@ line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2,
                            'Year: ', my_df$Year,"\n",
                            'Value: ', round(my_df$value, 2))
   }
-  
+
   line2 <- ggplot(data = my_df, aes(x = as.factor(Year), y = value, 
                                     group = `Country Name`, color = `Country Name`,
                                     text = tooltip_text)) +
-    geom_point(size = 0.5) +
+    # geom_point(size = 0.5) +
     geom_line(size = 0.5) +
     plot_theme +
     scale_color_manual(values = c(sdg_col, sdg_palette)) + 
@@ -116,4 +119,4 @@ line_function2 <- function(goal, topic, indicatorname,countryname1,countryname2,
   
   
   return(line2_plotly)
-}  
+} } 

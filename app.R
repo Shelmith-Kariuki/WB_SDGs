@@ -17,7 +17,9 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                     title = tags$a(href = "https://datatopics.worldbank.org/sdgs/", 
                                    span(h2(tags$b("WDI: Sustainable Development Goals\n(Africa)")),
                                  style = "color:#d5184e; font-style: bold;")),
-                      tabPanel(span(h3(tags$b("Home")),style = "color:#002f54;"),
+                      tabPanel(span(h3(tags$b("Home")),
+                                    style = "color:#002f54;"),
+                               height = 780,
                                fluidRow(column(10,offset = 1,
                                     includeMarkdown("www/home_page.md")))
                                ),
@@ -30,8 +32,12 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                  column(width = 3,
                                         pickerInput(
                                           inputId = "sdg",
-                                          label = span("Click to select a goal!",style="color:black;font-size:16px"), 
-                                          choices = goals_list)),
+                                          label = span(tags$b("Click to select a goal!"),style="color:black;font-size:16px"), 
+                                           choices = goals_list,
+                                          selected = "SDG 8 : Decent Work and Economic Growth",
+                                          choicesOpt = list(
+                                            style = rep_len("font-size: 16px; line-height: 1.8 em;", length(goals_list))
+                                          ))),
                                column(width = 8, offset = 1,
                                        imageOutput("image", height = 5))
                                         ),
@@ -67,7 +73,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                         enter = animations$fading_entrances$fadeInLeftBig,
                                                         exit = animations$fading_exits$fadeOutRightBig
                                                       ))),
-                                             column(width = 2, offset = 7,
+                                             column(width = 2, offset = 8,
                                                     uiOutput("country_dropdown"))),
                                            #),
                                            br(),
@@ -81,7 +87,7 @@ ui <- fluidPage(title = "WDI: Sustainable Development Goals",
                                                       withSpinner(leafletOutput('pl', height = 500), color = "#d5184e")
                                                     )),
                                            column(width = 7,
-                                                  br(),br(),br(),
+                                                  br(),
                                                  withSpinner(plotlyOutput("pl2", height = 630), color = "#d5184e"))))
                                            )
                                  
@@ -135,17 +141,6 @@ server <- function(input, output, session)({
       distinct(`Indicator Name`) %>% 
       pull()
     updatePickerInput(session, "indicator", choices = choices, selected = choices[1])
-  })
-  
-  ## The years indicated on the slider depend on the goal, topic and indicator selected.
-
-  col <- reactive({
-    tags$style(HTML(".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #d5184e}"))
-  })
-  
-  output$slider_col <- renderUI({
-    req(input$sdg)
-    col 
   })
   
 
@@ -208,7 +203,9 @@ server <- function(input, output, session)({
       req(input$year)
       req(nrow(year_reactive())>0)
       ## Define color palette
-      pal <- colorBin(palette = "YlOrRd", domain = indicator_reactive()$value)
+      polycolor <- goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Goal_col) %>% pull()
+      pal <- colorBin(palette = colorRampPalette(c("white", polycolor))(5), domain = year_reactive()$value)
+      
       ## Define the labels
       
       if(unique(year_reactive()$`Indicator Name`) %in% grep("%", unique(year_reactive()$`Indicator Name`), value = TRUE, ignore.case = TRUE)){
@@ -227,10 +224,10 @@ server <- function(input, output, session)({
       
       ## Generate the dynamic part of the map
       leafletProxy('pl') %>%
-        addPolygons(data = year_reactive(), color = "#397E4A", weight = 1, dashArray = "3", fillColor = ~pal(year_reactive()$value),
+        addPolygons(data = year_reactive(), color = polycolor, weight = 1, dashArray = "3", fillColor = ~pal(year_reactive()$value),
                     highlight = highlightOptions(
                       weight = 4,
-                      color = "#397E4A",
+                      color = polycolor,
                       dashArray = "",
                       bringToFront = TRUE),
                     label = labels,
@@ -246,7 +243,7 @@ server <- function(input, output, session)({
       # Remove any existing legend, and only if the legend is
       # enabled, create a new one.
       proxy %>% clearControls()
-      pal <- colorBin(palette = "YlOrRd", domain = indicator_reactive()$value)
+      # pal <- colorBin(palette = "YlOrRd", domain = indicator_reactive()$value)
       proxy %>% addLegend(position = "bottomright",pal = pal, values = ~value, title = ""
       )
     })
@@ -267,14 +264,14 @@ output$country_dropdown <- renderUI({
                 selected = countries[1],
                 options = pickerOptions(liveSearch	= TRUE,
                                         `style` = "btn-primary"),
-                width="290px"),
+                width="260px"),
     
     pickerInput(inputId = 'cn2',
                 label = 'Add Country',
-                choices = c("None", countries),
-                selected = "None",
+                choices = countries,
+                selected = "",
                 multiple = TRUE,
-                width="290px",
+                width="260px",
                 options = pickerOptions(`style` = "btn-primary",
                                         liveSearch	= TRUE,
                                         actionsBox = TRUE,
@@ -283,7 +280,7 @@ output$country_dropdown <- renderUI({
                                         noneSelectedText = "Select comparison countries")),
     
     style = "unite", icon = icon("plus"),
-    status = "danger", width = "320px",
+    status = "danger", width = "300px",
     tooltip = tooltipOptions(title = "Click to select country !"),
     animate = animateOptions(
       enter = animations$fading_entrances$fadeInLeftBig,
@@ -300,11 +297,9 @@ output$pl2 <- renderPlotly({
   sdg_palette <- trimws(unlist(str_split(goal_target_cols %>% filter(Goal_Name == input$sdg) %>% distinct(Palette) %>% pull(), 
                            pattern = ",")))
 
-  if(input$cn1 %in% input$cn2 |"None" %in% input$cn2){
-    # req(input$sdg, input$topic)
+  if(input$cn1 %in% input$cn2 |"" %in% input$cn2){
     line_function(input$sdg, input$topic, input$indicator,input$cn1, sdg_col, input$indicator) 
   }else{
-    # req(input$sdg, input$topic)
     line_function2(input$sdg, input$topic, input$indicator,input$cn1, input$cn2,sdg_col, sdg_palette, input$indicator)
   }
   
